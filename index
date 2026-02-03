@@ -15,6 +15,17 @@ body{background:#0f1115;color:#e6e6e6;font-family:Arial;margin:0}
 <body>
 <h1 style="text-align:center">Scénarios & alertes</h1>
 <div id="scenarioList"></div>
+<div style="padding:10px">
+  <label>HS mensuelles :
+    <input type="number" id="mhs" value="12">
+  </label>
+  <br><br>
+  <label>HS annuelles :
+    <input type="number" id="ahs" value="180">
+  </label>
+  <br><br>
+  <button onclick="reload()">Tester</button>
+</div>
 
 <script>
 const MONTHLY_DATA={totalHS:12};
@@ -1450,6 +1461,31 @@ d.innerHTML = `
 `;
  root.appendChild(d);
 });
+function reload() {
+  const m = Number(document.getElementById("mhs").value);
+  const a = Number(document.getElementById("ahs").value);
+
+  MONTHLY_DATA.totalHS = m;
+  ANNUAL_DATA.yearTotal = a;
+
+  document.getElementById("scenarioList").innerHTML = "";
+  const list = [
+    ...run(MONTHLY_DATA, MONTHLY_SCENARIOS),
+    ...run(ANNUAL_DATA, ANNUAL_SCENARIOS)
+  ];
+
+  list.forEach(s => {
+    const d = document.createElement("div");
+    d.className = "scenario-card " + s.level;
+    const data = s.title.includes("annuel") ? ANNUAL_DATA : MONTHLY_DATA;
+    d.innerHTML = `
+      <strong>${s.title}</strong><br>
+      ${s.message(data)}<br>
+      <small>${s.legal}</small>
+    `;
+    scenarioList.appendChild(d);
+  });
+}
 </script>
 </body>
 </html>
