@@ -2,57 +2,65 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Module 3 – Moteur Analyse HS</title>
+<title>Module 3 – Moteur Heures Sup</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
+/* ===============================
+   UI / THEME
+================================ */
 body {
-  margin:0;
+  margin: 0;
   font-family: Arial, sans-serif;
-  background:#0f1115;
-  color:#e6e6e6;
+  background: #0f1115;
+  color: #e6e6e6;
 }
 header {
-  background:#151922;
-  padding:12px;
-  text-align:center;
-  font-weight:bold;
+  background: #151922;
+  padding: 12px;
+  text-align: center;
+  font-weight: bold;
 }
 section {
-  padding:12px;
+  padding: 12px;
 }
 .card {
-  background:#1c1f26;
-  border-radius:10px;
-  padding:12px;
-  margin-bottom:10px;
+  background: #1c1f26;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
 }
 label {
-  display:block;
-  margin-top:8px;
+  display: block;
+  margin-top: 8px;
 }
 input, select, button {
-  width:100%;
-  padding:8px;
-  margin-top:4px;
-  border-radius:6px;
-  border:none;
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border-radius: 6px;
+  border: none;
+  box-sizing: border-box;
 }
 button {
-  background:#4FB3C2;
-  color:#000;
-  font-weight:bold;
+  background: #4FB3C2;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+}
+.result {
+  font-size: 14px;
+  margin-top: 10px;
 }
 .hidden {
-  display:none;
+  display: none;
 }
 .debug {
-  background:#300;
-  color:#fff;
-  padding:8px;
-  margin-top:10px;
-  border-radius:6px;
-  font-size:12px;
+  background: #2b0000;
+  color: #fff;
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -60,72 +68,67 @@ button {
 <body>
 
 <header>
-MODULE 3 – MOTEUR D’ANALYSE HEURES SUP
+MODULE 3 – MOTEUR CENTRAL HEURES SUP
 </header>
 
 <section>
 
+<!-- ===============================
+     MODE
+================================ -->
 <div class="card">
-<b>Méthode utilisée</b>
-<select id="method">
-  <option value="monthly">Paie mensuelle</option>
-  <option value="annual">Compteur annuel</option>
-</select>
+  <label>Méthode de gestion
+    <select id="method">
+      <option value="monthly">Paie mensuelle</option>
+      <option value="annual">Compteur annuel</option>
+    </select>
+  </label>
 </div>
 
+<!-- ===============================
+     PARAMÈTRES PÉRIODE
+================================ -->
 <div class="card">
-<b>Période analysée</b>
-<label>Date début
-  <input type="date" id="startDate">
-</label>
-<label>Date fin
-  <input type="date" id="endDate">
-</label>
+  <label>Date du jour analysé
+    <input type="date" id="workDate">
+  </label>
+
+  <label>Jour de clôture mensuelle
+    <input type="number" id="monthlyClose" min="1" max="31" value="31">
+  </label>
 </div>
 
+<!-- ===============================
+     SAISIE JOURNALIÈRE
+================================ -->
 <div class="card">
-<b>Paramètres</b>
-<label>Jour de clôture mensuel (si mensuel)
-  <input type="number" id="monthlyClose" min="1" max="31" value="31">
-</label>
-<label>
-  <input type="checkbox" id="countWeekend" checked>
-  Inclure samedi / dimanche
-</label>
-<label>
-  <input type="checkbox" id="countHolidays">
-  Inclure jours fériés
-</label>
-<label>Pas de temps
-  <select id="step">
-    <option value="0.25">Quart d’heure</option>
-    <option value="0.5">Demi-heure</option>
-    <option value="1">Heure</option>
-  </select>
-</label>
-</div>
+  <label>Heures normales
+    <input type="number" id="normalHours" step="0.25" value="7">
+  </label>
 
-<div class="card">
-<b>Saisie journalière (démo moteur)</b>
-<label>Heures normales
-  <input type="number" id="normalHours" step="0.25" value="7">
-</label>
-<label>Heures sup
-  <input type="number" id="extraHours" step="0.25" value="2">
-</label>
-<label>
-  <input type="checkbox" id="isHoliday">
-  Jour férié
-</label>
-<label>
-  <input type="checkbox" id="isAbsent">
-  Absence
-</label>
+  <label>Heures supplémentaires
+    <input type="number" id="extraHours" step="0.25" value="2">
+  </label>
+
+  <label>
+    <input type="checkbox" id="isWeekend">
+    Samedi / Dimanche
+  </label>
+
+  <label>
+    <input type="checkbox" id="isHoliday">
+    Jour férié
+  </label>
+
+  <label>
+    <input type="checkbox" id="isAbsent">
+    Absence
+  </label>
 </div>
 
 <button onclick="runEngine()">Analyser</button>
 
-<div id="output" class="card"></div>
+<div id="output" class="card result"></div>
 
 <div id="debug" class="debug hidden"></div>
 
@@ -133,9 +136,17 @@ MODULE 3 – MOTEUR D’ANALYSE HEURES SUP
 
 <script>
 /* ===============================
-   SÉCURITÉ / DEBUG
+   CONSTANTES / SÉCURITÉ
 ================================ */
 const DEBUG_CODE = "1234";
+
+/* ===============================
+   OUTILS DE BASE
+================================ */
+function roundQuarter(v) {
+  return Math.round(v * 4) / 4;
+}
+
 function openDebug() {
   const code = prompt("Code debug ?");
   if (code === DEBUG_CODE) {
@@ -146,9 +157,10 @@ function openDebug() {
 /* ===============================
    SNAPSHOT / RECOVERY
 ================================ */
-function saveSnapshot(data) {
-  localStorage.setItem("module3_snapshot", JSON.stringify(data));
+function saveSnapshot(state) {
+  localStorage.setItem("module3_snapshot", JSON.stringify(state));
 }
+
 function loadSnapshot() {
   const s = localStorage.getItem("module3_snapshot");
   return s ? JSON.parse(s) : null;
@@ -161,83 +173,108 @@ function runEngine() {
 
   const config = {
     method: document.getElementById("method").value,
-    start: document.getElementById("startDate").value,
-    end: document.getElementById("endDate").value,
-    monthlyClose: Number(document.getElementById("monthlyClose").value),
-    weekend: document.getElementById("countWeekend").checked,
-    holidays: document.getElementById("countHolidays").checked,
-    step: Number(document.getElementById("step").value)
+    date: document.getElementById("workDate").value,
+    monthlyClose: Number(document.getElementById("monthlyClose").value)
   };
 
-  const dayData = {
-    normal: roundStep(Number(document.getElementById("normalHours").value), config.step),
-    extra: roundStep(Number(document.getElementById("extraHours").value), config.step),
+  const day = {
+    normal: roundQuarter(Number(document.getElementById("normalHours").value)),
+    extra: roundQuarter(Number(document.getElementById("extraHours").value)),
+    weekend: document.getElementById("isWeekend").checked,
     holiday: document.getElementById("isHoliday").checked,
     absent: document.getElementById("isAbsent").checked
   };
 
   const result = {
-    totalExtra: 0,
+    countedExtra: 0,
     payableExtra: 0,
-    annualCounter: 0,
+    annualCounter: null,
     warnings: []
   };
 
-  if (dayData.absent) {
-    result.warnings.push("Jour d’absence : aucune heure comptabilisée");
-  } else {
-    if (dayData.holiday && !config.holidays) {
-      result.warnings.push("Jour férié non comptabilisé");
-    } else {
-      result.totalExtra += dayData.extra;
-    }
+  if (!config.date) {
+    renderError("Veuillez sélectionner une date.");
+    return;
+  }
+
+  if (day.absent) {
+    result.warnings.push("Jour d'absence : aucune heure comptabilisée.");
+    render(result, config, day);
+    return;
+  }
+
+  result.countedExtra = day.extra;
+
+  if (day.weekend) {
+    result.warnings.push("Travail le week-end.");
+  }
+
+  if (day.holiday) {
+    result.warnings.push("Jour férié travaillé.");
   }
 
   if (config.method === "monthly") {
-    result.payableExtra = result.totalExtra;
+    result.payableExtra = result.countedExtra;
   }
 
   if (config.method === "annual") {
-    const year = new Date().getFullYear();
-    const annualKey = "annual_" + year;
-    const current = Number(localStorage.getItem(annualKey)) || 0;
-    result.annualCounter = current + result.totalExtra;
-    localStorage.setItem(annualKey, result.annualCounter);
+    const year = new Date(config.date).getFullYear();
+    const key = "annual_counter_" + year;
+    const current = Number(localStorage.getItem(key)) || 0;
+    result.annualCounter = current + result.countedExtra;
+    localStorage.setItem(key, result.annualCounter);
   }
 
-  saveSnapshot({ config, dayData, result });
+  saveSnapshot({ config, day, result });
 
-  render(result, config, dayData);
+  /* ===============================
+     ZONE FUTURE SCÉNARIOS
+     (NE RIEN SUPPRIMER)
+  ================================ */
+  /*
+  runScenarios({
+    config,
+    day,
+    result
+  });
+  */
+
+  render(result, config, day);
 }
 
 /* ===============================
-   OUTILS
+   RENDER
 ================================ */
-function roundStep(value, step) {
-  return Math.round(value / step) * step;
-}
-
-function render(result, config, dayData) {
+function render(result, config, day) {
   const out = document.getElementById("output");
-  out.innerHTML = `
-  <b>Résultat moteur</b><br><br>
-  Méthode : ${config.method}<br>
-  HS comptabilisées : ${result.totalExtra} h<br>
-  ${
-    config.method === "monthly"
-    ? `HS payables : ${result.payableExtra} h`
-    : `Compteur annuel : ${result.annualCounter} h`
+
+  let html = "<b>Résultat moteur</b><br><br>";
+  html += "Méthode : " + config.method + "<br>";
+  html += "HS comptabilisées : " + result.countedExtra + " h<br>";
+
+  if (config.method === "monthly") {
+    html += "HS payables : " + result.payableExtra + " h<br>";
+    html += "Clôture mensuelle : jour " + config.monthlyClose + "<br>";
+  } else {
+    html += "Compteur annuel : " + result.annualCounter + " h<br>";
   }
-  <br><br>
-  ${result.warnings.join("<br>")}
-  `;
+
+  if (result.warnings.length) {
+    html += "<br><b>Infos :</b><br>" + result.warnings.join("<br>");
+  }
+
+  out.innerHTML = html;
 
   document.getElementById("debug").innerText =
-    JSON.stringify({config, dayData, result}, null, 2);
+    JSON.stringify({ config, day, result }, null, 2);
+}
+
+function renderError(msg) {
+  document.getElementById("output").innerHTML = msg;
 }
 
 /* ===============================
-   AUTO RECOVERY
+   AUTO-RECOVERY
 ================================ */
 const snap = loadSnapshot();
 if (snap) {
